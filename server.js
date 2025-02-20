@@ -38,18 +38,42 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Middleware para verificar la autenticación
+function ensureAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.redirect('/');
+}
+
 app.get("/", (req, res) => {
   const html = "<a href='/auth/github'>Autenticar con GitHub</a>";
     res.send(html);
 });
 
-// Ruta principal
-app.get('/', (req, res) => {
-  res.send('¡Hola, mundo!');
+
+app.get('/auth/github',
+  passport.authenticate('github', { scope: [ 'user:email' ] }),
+  
+);
+
+app.get('/auth/github/callback',
+    passport.authenticate('github', { failureRedirect: '/' }),
+    (req, res, next) => {
+        res.send('/profile');
+    }
+);
+
+app.get('/profile', ensureAuthenticated, (req, res) => {
+    res.send(`Hola ${req.user.username || req.user.displayName}`);
 });
 
-
-
+app.get('/logout', (req, res) => {
+    req.logout(done => {
+        console.log('Usuario deslogueado');
+    });
+    res.redirect('/');
+});
 
 // Iniciar el servidor
 app.listen(port, () => {
